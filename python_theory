@@ -1,0 +1,134 @@
+1.multithreading and multiprocessing which run parellel
+ans:✅ Multiprocessing runs tasks in true parallel.
+❌ Multithreading in Python does not achieve true parallelism due to the Global Interpreter Lock (GIL).
+
+
+multi-threading is limited by the Global Interpreter Lock (GIL). 
+
+
+2. What is the GIL?
+ans:The Global Interpreter Lock (GIL) is a mutex (a lock) that allows only one thread to execute Python bytecode at a time in CPython (the most common Python implementation).
+Even if you create multiple threads, only one thread can run Python code at a time while holding the GIL. This limits true parallelism in CPU-bound tasks.
+
+
+3.🧵 How Multi-threading Works with the GIL
+ans:Thread switching happens after a certain amount of work or after a time slice (default is every 5 milliseconds). Python handles this context-switching automatically.
+I/O-bound tasks (like waiting for a network response or reading a file) can release the GIL while waiting, allowing other threads to execute.
+
+
+4 When is Multi-threading Useful?
+ans:Multi-threading in Python works well for I/O-bound tasks because these tasks spend most of their time waiting rather than using the CPU.
+
+Examples:
+
+Network requests (using requests or httpx)
+File I/O operations
+Database queries
+
+5 Why Use Multiprocessing for CPU-bound Tasks?
+ans:If you need to perform CPU-bound tasks (e.g., heavy computation), use the multiprocessing module, which spawns separate processes that bypass the GIL.
+
+
+📌 Summary:
+Threading is good for I/O-bound tasks but is limited by the GIL.
+
+Multiprocessing is best for CPU-bound tasks because it avoids the GIL.
+
+For true concurrency in Python, use the right tool for the job:
+
+I/O-bound → threading, asyncio
+
+CPU-bound → multiprocessing
+
+
+ **Celery uses multiprocessing by default for executing tasks concurrently.
+
+ 
+6. Can Celery Use Threads?
+Yes! You can switch to multi-threading by changing the pool type:
+
+Prefork (default) – Uses multiprocessing
+Threads – Uses multi-threading (for I/O-bound tasks)
+Eventlet or Gevent – For asynchronous tasks
+
+celery -A your_project worker --pool=threads --concurrency=10
+Task Type	Recommended Pool
+CPU-bound	--pool=prefork (default)
+I/O-bound	--pool=threads
+Async I/O	--pool=eventlet or gevent
+
+
+7 Why Does Multiprocessing Run in Parallel?
+ans :Separate Processes: Each process has its own Python interpreter and memory space, bypassing the GIL.
+    True Parallel Execution: CPU-bound tasks (e.g., heavy calculations) can run on multiple CPU cores simultaneously.
+
+
+8. Does Python Support GIL?
+ans: Yes, Python (CPython) has a Global Interpreter Lock (GIL), which restricts true parallel execution of threads. This means:
+    Only one thread can execute Python bytecode at a time.
+    Even on multi-core CPUs, Python threads cannot achieve true parallelism.
+
+9. Name Mangling in Python?
+ans: Name mangling in Python is a mechanism used to protect class-private attributes from being accidentally overridden in subclasses.
+example
+  class MyClass:
+    def __init__(self):
+        self.__private = "This is private"
+
+    def show(self):
+        print(self.__private)
+
+obj = MyClass()
+obj.show()  # ✅ Works fine
+
+print(obj.__private)  # ❌ AttributeError: 'MyClass' object has no attribute '__private'
+
+# 🔍 But we can access it using name mangling:
+print(obj._MyClass__private)  # ✅ Works: "This is private"
+
+
+10.Monkey Patching in Python
+ans:Monkey patching means changing or modifying code at runtime, usually by replacing methods or attributes without altering the original source code.
+example
+class Animal:
+    def sound(self):
+        return "Roar"
+
+# Original behavior
+a = Animal()
+print(a.sound())  # Output: Roar
+
+# 🐵 Monkey patching: Changing the method at runtime
+def new_sound(self):
+    return "Meow"
+
+Animal.sound = new_sound  # Replacing method
+
+print(a.sound())  # Output: Meow
+
+
+11. Function Overloading (Method Overloading)
+ans:  Defining multiple methods with the same name but different arguments.
+📌 Python does NOT support function overloading in the traditional sense (like Java or C++).
+
+✅ How to Achieve Function Overloading in Python?
+   Since Python doesn’t support overloading directly, we can use default arguments or *args.
+
+
+12. Function Overriding (Method Overriding)
+ans: Overriding happens when a subclass provides a specific implementation of a method that already exists in its parent class.
+example
+class Animal:
+    def sound(self):
+        return "Some sound"
+
+class Dog(Animal):
+    def sound(self):  # Overriding the method
+        return "Bark"
+
+dog = Dog()
+print(dog.sound())  # ✅ Output: "Bark"
+
+📌 What happened?
+Dog overrides the sound() method of Animal.
+When calling sound(), Python uses the child class method instead of the parent one.
