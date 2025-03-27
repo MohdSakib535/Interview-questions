@@ -132,3 +132,10 @@ print(dog.sound())  # ✅ Output: "Bark"
 📌 What happened?
 Dog overrides the sound() method of Animal.
 When calling sound(), Python uses the child class method instead of the parent one.
+
+13. What are Python namespaces?
+ans: A namespace in Python is a system that assigns unique names to variables, functions, classes, and objects to prevent naming conflicts.
+
+14. How is memory managed in Python?
+ans: Python uses a dynamic memory management system that automatically allocates and deallocates memory to ensure efficient memory usage
+
