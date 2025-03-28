@@ -139,3 +139,24 @@ ans: A namespace in Python is a system that assigns unique names to variables, f
 14. How is memory managed in Python?
 ans: Python uses a dynamic memory management system that automatically allocates and deallocates memory to ensure efficient memory usage
 
+15. what is coroutine?
+ans:A coroutine is a type of function that can pause its execution and then resume later, allowing other tasks to run in the meantime.
+     This is especially useful in asynchronous programming, where you want to perform operations (like fetching data from the internet or reading a file) without stopping the whole program.
+
+
+16 thread vs corountine?
+ans:
+Threads:
+They are like independent workers managed by your operating system.
+Threads can truly run at the same time on multiple CPU cores (parallel execution).
+The OS handles switching between threads automatically, which can sometimes lead to unpredictable timing.
+
+Coroutines:
+They are more like functions that can pause and resume their work, yielding control at specific points.
+Coroutines run within a single thread and are cooperatively scheduled (they decide when to pause, rather than being interrupted unexpectedly).
+They are lightweight and great for handling asynchronous tasks without the overhead of full threads.
+
+In short, threads are managed by the OS and can run in parallel, while coroutines are controlled by your program and allow for simpler, sequential-style coding even when dealing with asynchronous tasks.
+
+
+
