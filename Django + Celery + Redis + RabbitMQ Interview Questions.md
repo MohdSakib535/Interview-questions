@@ -582,7 +582,243 @@ Here are some potential interview questions covering Django, Celery, Redis, and 
     | **Redis**          | Queues exist as **lists** inside Redis memory (e.g., `LPUSH` for adding tasks, `RPOP` for consuming).                     |
     | **RabbitMQ**       | Queues exist as **durable message queues** inside RabbitMQ (AMQP-based). Messages are stored temporarily until processed. |
     | **Amazon SQS**     | Queues exist inside Amazon’s managed Simple Queue Service (SQS), persisting messages until consumed.                      |
-    | **Kafka**          | Queues exist as **partitions inside Kafka topics**, allowing scalable message streaming.                                  |
+    | **Kafka**          | Queues exist as **partitions inside Kafka topics**, allowing scalable message streaming.
+
+
+
+13. ** What is the difference between @app.task and @shared_task in Celery?**
+
+    @app.task: Binds the task to a specific Celery application instance (app). Used when the Celery instance is available in the module.
+
+    @shared_task: Creates a task without binding it to a specific Celery instance. Used in Django apps to avoid circular imports and allow tasks to be reusable.
+
+14 ** When should you use @shared_task instead of @app.task in a Django project?**
+
+        Use @shared_task when:
+   ✅ You define tasks inside Django apps (not in the main Celery module).
+   ✅ You want to avoid importing the Celery app instance to prevent circular imports.
+   ✅ You need reusable tasks across multiple Celery apps.
+
+
+15 **What are the advantages of using @shared_task in a Django project with multiple apps?**
+
+
+    ✅ Avoids circular import issues.
+✅ Makes tasks reusable across different Django apps.
+✅ Decouples task definitions from Celery configuration.
+
+
+16.  **What happens if a Celery worker crashes while executing a task?**
+
+      If ACKs (Acknowledgements) are enabled, the task will be re-queued and retried.
+If ACKs are disabled, the task is lost unless retries are configured.
+The acks_late=True option ensures a task is retried if a worker crashes before completing it.
+
+Applying acks_late Globally in Django's Celery Configuration
+
+```python
+from celery import Celery
+
+app = Celery('my_project')
+
+# Broker settings
+app.conf.broker_url = 'redis://localhost:6379/0'
+
+# Enable late acknowledgments globally
+app.conf.task_acks_late = True
+
+# Optional: Configure retries for robustness
+app.conf.task_autoretry_for = (Exception,)
+app.conf.task_retry_kwargs = {'max_retries': 3}
+
+
+@shared_task
+def my_task(x, y):
+    return x + y
+
+```
+
+17 **How can you implement retries in @shared_task since it does not support self.retry()?**
+
+   Use autoretry_for with max_retries.
+
+Manually call apply_async() with countdown for retry delays.
+
+```python
+@shared_task
+def fetch_data(url, retries=3):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        if retries > 0:
+            fetch_data.apply_async((url, retries - 1), countdown=5)  # Retry in 5 seconds
+        else:
+            raise e  # Stop retrying after max attempts
+
+```
+
+
+
+18 **What is autoretry_for in Celery, and how does it work?**
+It automatically retries a task when specific exceptions occur.
+
+Used with max_retries to limit retry attempts.
+
+```python 
+
+@shared_task(autoretry_for=(requests.exceptions.RequestException,), max_retries=3, retry_backoff=5)
+def fetch_data(url):
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.json()
+```
+
+19.  **Explain the difference between retry_backoff=True and retry_backoff=5.**
+
+    retry_backoff=True: Uses exponential backoff (e.g., 2, 4, 8, 16 seconds).
+    retry_backoff=5: Uses fixed backoff (always waits 5 seconds between retries).
+
+20  **How do you manually retry a task using apply_async()?**
+
+
+```python
+
+@shared_task
+def my_task():
+    try:
+        # Task logic
+        pass
+    except Exception as e:
+        my_task.apply_async(countdown=10)  # Retry after 10 seconds
+```
+
+
+21 ** What is the purpose of the countdown parameter in apply_async()?**
+
+It delays the execution of the task by the specified number of seconds.
+
+```python
+my_task.apply_async(countdown=30)  # Runs after 30 seconds
+
+```
+
+
+22 **. How do you prevent infinite retries in Celery tasks?**
+
+Preventing infinite retries in Celery tasks is important to ensure that tasks don't keep retrying indefinitely in case of persistent errors, which could overload your system or cause resource exhaustion. You can control the retry behavior by using max_retries, autoretry_for, and manual retry logic with a retry counter.
+
+
+
+Methods to Prevent Infinite Retries in Celery
+1. Use max_retries with autoretry_for
+The max_retries setting limits the number of times a task will be retried. You can combine it with autoretry_for to automatically retry tasks for specific exceptions.
+
+max_retries: Defines the maximum number of retry attempts.
+
+autoretry_for: Specifies which exceptions should trigger a retry.
+
+Example 1: Automatic Retry with Max Retries
+
+```python
+from celery import shared_task
+
+@shared_task(autoretry_for=(ZeroDivisionError,), max_retries=3, retry_backoff=True)
+def my_task(x, y):
+    return x / y  # Task may fail if y == 0
+```
+
+Example2 :** Manual Retry Logic with Retry Counter**
+
+```python
+
+from celery import shared_task
+from celery.exceptions import MaxRetriesExceededError
+
+@shared_task(bind=True, max_retries=5)
+def my_task(self, x, y):
+    # Check the retry counter and decide if we should retry
+    if self.request.retries >= 3:  # Limit retries manually after 3 attempts
+        raise MaxRetriesExceededError("Max retries reached.")
+    
+    try:
+        result = x / y  # Task logic that may fail (division by zero)
+        return result
+    except ZeroDivisionError as exc:
+        # Manually trigger a retry after 5 seconds
+        raise self.retry(exc=exc, countdown=5)
+```
+
+23 **how we know when use dealy or applu_Async??**
+    When deciding whether to use delay() or apply_async() in Celery, it's important to consider the complexity and flexibility of your task requirements. 
+
+
+     Use delay() When:
+
+         delay() is a simpler and more concise way to call tasks asynchronously. It is best used when you don’t need advanced configuration or customization and are simply looking for a 
+             straightforward way to invoke a task in the background.
+         
+         Simple Asynchronous Tasks: Use delay() when you want to asynchronously execute a task with basic arguments without any complex scheduling or retry behavior.
+         
+         Default Behavior: If you don't need to specify advanced options like retries, scheduling, task priority, or specific timeouts, delay() is a convenient shortcut.
+         
+         Basic Use Case: When you just want the task to execute asynchronously without caring about execution time, retries, or timing.
+
+
+      ```python 
+      
+    from celery import shared_task
+      
+      @shared_task
+      def add(x, y):
+          return x + y
+      
+      # Simple asynchronous task call
+      result = add.delay(4, 6)  # No need for countdown, retry, or other options
+
+      ```
+    2. **Use apply_async() When:**
+
+       apply_async() is a more powerful and flexible method. It should be used when you need more control over how tasks are executed, such as when you want to customize retry behavior, task 
+               scheduling, or pass additional parameters like countdown, eta, priority, max_retries, etc.
+      
+      You should prefer apply_async() when you need to:
+      
+      Schedule Tasks: If you want to delay the execution of a task for a specific amount of time or at a specific point in the future, you should use apply_async() with countdown or eta.
+      
+      Set Task Priorities: If you need to assign a priority to a task to control the order in which tasks are picked up by workers, apply_async() allows you to specify a priority field.
+      
+      Retry Behavior: If you need more complex retry behavior, such as exponential backoff, maximum retries, or manual control of retries, apply_async() is the right choice.
+      
+      Time Limits and Timeout: When you need to set a time_limit or soft_time_limit for task execution, apply_async() provides that flexibility.
+
+
+      ```python 
+
+
+      from celery import shared_task
+      from datetime import datetime, timedelta
+      
+      @shared_task
+      def add(x, y):
+          return x + y
+      
+      # Schedule the task to run 10 seconds from now
+      result = add.apply_async(args=[4, 6], countdown=10)
+      
+      # Set a specific execution time (5 minutes from now)
+      eta_time = datetime.utcnow() + timedelta(minutes=5)
+      result = add.apply_async(args=[4, 6], eta=eta_time)
+      
+      # Set task priority and max retries
+      result = add.apply_async(args=[4, 6], priority=5, max_retries=3)
+
+
+```
+
+
+     
 
 ## Redis
 
