@@ -159,4 +159,9 @@ They are lightweight and great for handling asynchronous tasks without the overh
 In short, threads are managed by the OS and can run in parallel, while coroutines are controlled by your program and allow for simpler, sequential-style coding even when dealing with asynchronous tasks.
 
 
+17 How does Python handle memory management, and what role does garbage collection play?
+ans: Python manages memory allocation and deallocation automatically using a private heap, where all objects and data structures are stored. The memory management process is handled by Python’s memory manager, which optimizes memory usage,
+     and the garbage collector, which deals with unused or unreferenced objects to free up memory.  
+    Garbage collection in Python uses reference counting as well as a cyclic garbage collector to detect and collect unused data. When an object has no more references, it becomes eligible for garbage collection. The gc module in Python allows you to interact with the garbage collector directly,
+    providing functions to enable or disable garbage collection, as well as to perform manual collection.
 
